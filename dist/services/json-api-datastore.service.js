@@ -19,6 +19,7 @@ require("rxjs/add/observable/throw");
 var json_api_model_1 = require("../models/json-api.model");
 var error_response_model_1 = require("../models/error-response.model");
 var json_api_query_data_1 = require("../models/json-api-query-data");
+var angular2_jwt_1 = require("angular2-jwt");
 var JsonApiDatastore = (function () {
     function JsonApiDatastore(http) {
         this.http = http;
@@ -96,6 +97,13 @@ var JsonApiDatastore = (function () {
         return this.http.delete(url, options)
             .catch(function (res) { return _this.handleError(res); });
     };
+    JsonApiDatastore.prototype.bulkDelete = function (modelType, models, headers) {
+        var _this = this;
+        var options = this.getOptions(headers);
+        var url = this.buildUrl(modelType, this.getModelsIds(models));
+        return this.http.delete(url, options)
+            .catch(function (res) { return _this.handleError(res); });
+    };
     JsonApiDatastore.prototype.peekRecord = function (modelType, id) {
         var type = Reflect.getMetadata('JsonApiModelConfig', modelType).type;
         return this._store[type] ? this._store[type][id] : null;
@@ -111,6 +119,20 @@ var JsonApiDatastore = (function () {
         enumerable: true,
         configurable: true
     });
+    JsonApiDatastore.prototype.getModelsIds = function (models) {
+        var params = {};
+        if (!models) {
+            return params;
+        }
+        models.forEach(function (model) {
+            var propertyName = model.idPropertyName;
+            var propertyValue = model.id;
+            if (propertyValue) {
+                undefined === params[propertyName] ? params[propertyName] = [propertyValue] : params[propertyName].push(propertyValue);
+            }
+        });
+        return params;
+    };
     JsonApiDatastore.prototype.buildUrl = function (modelType, params, id) {
         var typeName = Reflect.getMetadata('JsonApiModelConfig', modelType).type;
         var baseUrl = Reflect.getMetadata('JsonApiDatastoreConfig', this.constructor).baseUrl;
@@ -290,7 +312,7 @@ var JsonApiDatastore = (function () {
 }());
 JsonApiDatastore = __decorate([
     core_1.Injectable(),
-    __metadata("design:paramtypes", [http_1.Http])
+    __metadata("design:paramtypes", [angular2_jwt_1.AuthHttp])
 ], JsonApiDatastore);
 exports.JsonApiDatastore = JsonApiDatastore;
 //# sourceMappingURL=json-api-datastore.service.js.map

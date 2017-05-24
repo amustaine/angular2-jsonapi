@@ -1,3 +1,4 @@
+export * from './decorators/id.decorator';
 export * from './decorators/has-many.decorator';
 export * from './decorators/belongs-to.decorator';
 export * from './decorators/attribute.decorator';

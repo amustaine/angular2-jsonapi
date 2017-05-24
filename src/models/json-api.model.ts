@@ -6,11 +6,12 @@ import { JsonApiDatastore, ModelType } from '../services/json-api-datastore.serv
 export class JsonApiModel {
 
   id: string;
+  idPropertyName = 'id';
   [key: string]: any;
 
   constructor(private _datastore: JsonApiDatastore, data?: any) {
     if (data) {
-      this.id = data.id;
+      this.setId(data);
       _.extend(this, data.attributes);
     }
   }
@@ -104,6 +105,38 @@ export class JsonApiModel {
         }
       }
     }
+  }
+
+  private setId(data: any): any {
+    let idAttributes: any = Reflect.getMetadata('Id', this);
+    let modelId   = data.id;
+    let modelData =  data.attributes;
+
+    if (!modelData || (0 === idAttributes.length && undefined === modelId)) {
+      return undefined;
+    }
+
+    if (undefined !== data.id && 0 === idAttributes.length) {
+      this.id = data.id;
+
+      return data.id;
+    }
+
+    if (idAttributes.length > 1) {
+      throw { message: 'Model have have more then one "Id" definitions' };
+    }
+
+    let idAttribute  = idAttributes[0];
+    let propertyName = idAttribute['propertyName'];
+
+    if (undefined === modelData[propertyName]) {
+      return undefined;
+    }
+
+    this.id = modelData[propertyName];
+    this.idPropertyName = propertyName;
+
+    return this.id;
   }
 
   private getHasManyRelationship<T extends this>(modelType: ModelType<T>, data: any, included: any, typeName: string, level: number): T[] {

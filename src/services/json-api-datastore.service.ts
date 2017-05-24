@@ -10,6 +10,7 @@ import {JsonApiModel} from '../models/json-api.model';
 import {ErrorResponse} from '../models/error-response.model';
 import {JsonApiQueryData} from '../models/json-api-query-data';
 import {JsonApiMetaModel} from '../models/json-api-meta.model';
+import { AuthHttp }       from 'angular2-jwt';
 
 export type ModelType<T extends JsonApiModel> = { new(datastore: JsonApiDatastore, data: any): T; };
 
@@ -19,7 +20,7 @@ export class JsonApiDatastore {
     private _headers: Headers;
     private _store: any = {};
 
-    constructor(private http: Http) {
+    constructor(private http: AuthHttp) {
     }
 
     /** @deprecated - use findAll method to take all models **/
@@ -94,6 +95,13 @@ export class JsonApiDatastore {
             .catch((res: any) => this.handleError(res));
     }
 
+    bulkDelete<T extends JsonApiModel>(modelType: ModelType<T>, models?: T[], headers?: Headers): Observable<Response> {
+        let options: RequestOptions = this.getOptions(headers);
+        let url: string = this.buildUrl(modelType, this.getModelsIds(models));
+        return this.http.delete(url, options)
+          .catch((res: any) => this.handleError(res));
+    }
+
     peekRecord<T extends JsonApiModel>(modelType: ModelType<T>, id: string): T {
         let type: string = Reflect.getMetadata('JsonApiModelConfig', modelType).type;
         return this._store[type] ? this._store[type][id] : null;
@@ -106,6 +114,25 @@ export class JsonApiDatastore {
 
     set headers(headers: Headers) {
         this._headers = headers;
+    }
+
+    private getModelsIds<T extends JsonApiModel>(models?: T[]): {} {
+        let params: any = {};
+
+        if (!models) {
+            return params;
+        }
+
+        models.forEach((model: T) => {
+            let propertyName:  string = model.idPropertyName;
+            let propertyValue: string = model.id;
+
+            if (propertyValue) {
+                undefined === params[propertyName] ? params[propertyName] = [propertyValue] : params[propertyName].push(propertyValue);
+            }
+        });
+
+        return params;
     }
 
     private buildUrl<T extends JsonApiModel>(modelType: ModelType<T>, params?: any, id?: string): string {

@@ -4,8 +4,9 @@ var _ = require("lodash");
 var JsonApiModel = (function () {
     function JsonApiModel(_datastore, data) {
         this._datastore = _datastore;
+        this.idPropertyName = 'id';
         if (data) {
-            this.id = data.id;
+            this.setId(data);
             _.extend(this, data.attributes);
         }
     }
@@ -101,6 +102,29 @@ var JsonApiModel = (function () {
                 }
             }
         }
+    };
+    JsonApiModel.prototype.setId = function (data) {
+        var idAttributes = Reflect.getMetadata('Id', this);
+        var modelId = data.id;
+        var modelData = data.attributes;
+        if (!modelData || (0 === idAttributes.length && undefined === modelId)) {
+            return undefined;
+        }
+        if (undefined !== data.id && 0 === idAttributes.length) {
+            this.id = data.id;
+            return data.id;
+        }
+        if (idAttributes.length > 1) {
+            throw { message: 'Model have have more then one "Id" definitions' };
+        }
+        var idAttribute = idAttributes[0];
+        var propertyName = idAttribute['propertyName'];
+        if (undefined === modelData[propertyName]) {
+            return undefined;
+        }
+        this.id = modelData[propertyName];
+        this.idPropertyName = propertyName;
+        return this.id;
     };
     JsonApiModel.prototype.getHasManyRelationship = function (modelType, data, included, typeName, level) {
         var _this = this;
